@@ -1,0 +1,25 @@
+import { contacts } from "wix-crm.v2";
+
+export async function myQueryFunction() {
+  const results = await contacts.queryContacts().find();
+  if (results.items.length > 0) {
+    return results.items;
+  }
+}
+
+export async function getVerifiedSubscribers() {
+  let allSubscribers = [];
+  let results = await contacts.queryContacts().limit(100).find();
+  while (results.items && results.items.length > 0) {
+    const pageSubscribers = results.items
+      .filter(contact => contact.primaryEmail?.subscriptionStatus === 'SUBSCRIBED' && contact.primaryEmail?.email)
+      .map(contact => contact.primaryEmail.email);
+    allSubscribers = allSubscribers.concat(pageSubscribers);
+    if (results.hasNext()) {
+      results = await results.next();
+    } else {
+      break;
+    }
+  }
+  return allSubscribers;
+}
