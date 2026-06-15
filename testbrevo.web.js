@@ -29,7 +29,7 @@ export const testSendEmail = webMethod(Permissions.Anyone, async () => {
         const subject = `Daily Quote - ${dateString}`;
 
         const htmlContent = buildEmailTemplate(quoteText, author, quoteImage);
-        const result = await sendSingleEmail(brevoApiKey, "nomiking0072012@gmail.com", subject, htmlContent);
+        const result = await sendSingleEmail(brevoApiKey, ["asima.panda047@gmail.com", "satpathy.abhishek@gmail.com", "Bubu.abhi@gmail.com"], subject, htmlContent);
         
         console.log("Test execution result:", result);
         return result;
@@ -39,16 +39,14 @@ export const testSendEmail = webMethod(Permissions.Anyone, async () => {
     }
 });
 
-async function sendSingleEmail(apiKey, recipientEmail, subject, htmlContent) {
+async function sendSingleEmail(apiKey, recipientEmails, subject, htmlContent) {
     const url = "https://api.brevo.com/v3/smtp/email";
     const payload = {
         "sender": { 
             "name": "CBS Office", 
             "email": "quotes@cbsatpathy.com" 
         },
-        "to": [{ 
-            "email": recipientEmail 
-        }],
+        "to": recipientEmails.map(email => ({ "email": email })),
         "subject": subject,
         "htmlContent": htmlContent
     };
@@ -65,13 +63,13 @@ async function sendSingleEmail(apiKey, recipientEmail, subject, htmlContent) {
         });
 
         if (response.ok) {
-            return { email: recipientEmail, success: true };
+            return recipientEmails.map(email => ({ email, success: true }));
         } else {
             const errorText = await response.text();
-            return { email: recipientEmail, success: false, error: errorText };
+            return recipientEmails.map(email => ({ email, success: false, error: errorText }));
         }
     } catch (err) {
-        return { email: recipientEmail, success: false, error: err.message };
+        return recipientEmails.map(email => ({ email, success: false, error: err.message }));
     }
 }
 
