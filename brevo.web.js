@@ -26,6 +26,8 @@ export const sendDailyQuoteJob = webMethod(Permissions.Anyone, async () => {
         const quoteText = quoteItem.quoteText;
         const author = quoteItem.author || "Unknown";
         const quoteImage = quoteItem.quoteImage;
+        const title = quoteItem.title || "";
+        const quoteDate = quoteItem.quoteDate;
 
         const subscribers = await getVerifiedSubscribers();
         if (!subscribers || subscribers.length === 0) {
@@ -40,7 +42,7 @@ export const sendDailyQuoteJob = webMethod(Permissions.Anyone, async () => {
         const dateString = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         const subject = `Daily Quote - ${dateString}`;
 
-        const htmlContent = buildEmailTemplate(quoteText, author, quoteImage);
+        const htmlContent = buildEmailTemplate(quoteText, author, quoteImage, title, quoteDate);
         const batchSize = 10;
         let successCount = 0;
         let failCount = 0;
@@ -99,15 +101,60 @@ async function sendSingleEmail(apiKey, recipientEmail, subject, htmlContent) {
     }
 }
 
-function buildEmailTemplate(quoteText, author, quoteImage) {
-    let imageHtml = '';
+function buildEmailTemplate(quoteText, author, quoteImage, title, quoteDate) {
+    const targetDate = quoteDate ? new Date(quoteDate) : new Date();
+    const day = targetDate.getDate();
+    const month = targetDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+
+    let imageAndCardHtml;
+    let imageUrl = '';
     if (quoteImage) {
-        if (quoteImage.startsWith('http://') || quoteImage.startsWith('https://')) {
-            imageHtml = `
-            <div style="margin-bottom: 25px; text-align: center;">
-                <img src="${quoteImage}" alt="Inspirational Image" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);" />
-            </div>`;
+        imageUrl = quoteImage;
+        // Convert Wix media URLs (wix:image://v1/filename/...) to usable static URLs
+        if (quoteImage.startsWith('wix:image://v1/')) {
+            const parts = quoteImage.replace('wix:image://v1/', '').split('/');
+            imageUrl = 'https://static.wixstatic.com/media/' + parts[0];
         }
+        if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+            imageUrl = '';
+        }
+    }
+
+    if (imageUrl) {
+        // Image + quote card in same cell so negative margin overlap works
+        imageAndCardHtml = `
+        <tr>
+            <td style="padding: 0; background-color: #eae7e1;">
+                <img src="${imageUrl}" alt="Inspirational Image" style="width: 100%; max-width: 100%; height: auto; display: block; border: 0;" />
+                <div style="margin-top: -45px; position: relative; padding-bottom: 20px;">
+                    <table class="quote-card" align="center" role="presentation" width="100%" style="border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 40px 50px;">
+                                <div class="quote-mark">“</div>
+                                <div class="quote-text">${quoteText}</div>
+                                <div class="quote-author">${author}</div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+        </tr>`;
+    } else {
+        // No image — just the quote card standalone
+        imageAndCardHtml = `
+        <tr>
+            <td class="quote-container" style="padding-top: 30px; padding-bottom: 20px;">
+                <table class="quote-card" align="center" role="presentation" width="100%" style="border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 40px 50px;">
+                            <div class="quote-mark">“</div>
+                            <div class="quote-text">${quoteText}</div>
+                            <div class="quote-author">${author}</div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>`;
     }
 
     return `
@@ -118,76 +165,112 @@ function buildEmailTemplate(quoteText, author, quoteImage) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Daily Inspirational Quote</title>
         <style>
-            @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@300;400;500&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
             body {
                 margin: 0;
                 padding: 0;
-                background-color: #f4f6f8;
+                background-color: #eae7e1;
                 font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                 -webkit-font-smoothing: antialiased;
             }
             .wrapper {
                 width: 100%;
                 table-layout: fixed;
-                background-color: #f4f6f8;
-                padding-top: 40px;
+                background-color: #eae7e1;
+                padding-top: 20px;
                 padding-bottom: 40px;
             }
             .main-table {
-                background-color: #ffffff;
+                background-color: #eae7e1;
                 margin: 0 auto;
                 width: 100%;
                 max-width: 600px;
                 border-spacing: 0;
-                font-family: sans-serif;
+                font-family: 'Plus Jakarta Sans', sans-serif;
                 color: #2d3748;
-                border-radius: 16px;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
-                overflow: hidden;
-                border: 1px solid #e2e8f0;
             }
-            .content-container {
-                padding: 40px 35px;
+            .header-table {
+                width: 100%;
+                border-spacing: 0;
+                background-color: #eae7e1;
+            }
+            .date-box {
+                background-color: #C2002F;
+                color: #ffffff;
+                width: 80px;
+                height: 80px;
+                text-align: center;
+                vertical-align: middle;
+            }
+            .date-day {
+                font-size: 28px;
+                font-weight: 700;
+                line-height: 1;
+                margin: 0;
+            }
+            .date-month {
+                font-size: 13px;
+                font-weight: 700;
+                letter-spacing: 1.5px;
+                margin: 2px 0 0 0;
+            }
+            .header-title {
+                font-family: 'Playfair Display', Georgia, serif;
+                font-size: 18px;
+                font-weight: 600;
+                color: #C2002F;
+                padding-left: 20px;
+                vertical-align: middle;
+                text-align: left;
+                background-color: #ffffff;
+                height: 80px;
+            }
+            .quote-container {
+                padding: 0 0 20px 0;
+                background-color: #eae7e1;
+            }
+            .quote-card {
+                background-color: #ffffff;
+                box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
+                text-align: center;
+                position: relative;
             }
             .quote-mark {
                 font-family: 'Playfair Display', Georgia, serif;
-                font-size: 72px;
+                font-size: 64px;
                 color: #cbd5e1;
-                line-height: 10px;
-                height: 30px;
-                margin-top: 10px;
+                line-height: 1;
+                margin-bottom: 10px;
+                height: 40px;
             }
             .quote-text {
                 font-family: 'Playfair Display', Georgia, serif;
-                font-size: 24px;
+                font-size: 22px;
                 line-height: 1.6;
                 color: #1a202c;
                 font-style: italic;
-                margin-bottom: 20px;
+                margin-bottom: 25px;
                 font-weight: 500;
             }
             .quote-author {
-                font-family: 'Plus Jakarta Sans', sans-serif;
-                font-size: 15px;
-                font-weight: 500;
-                color: #64748b;
-                letter-spacing: 1.5px;
-                text-transform: uppercase;
-                margin-bottom: 30px;
-            }
-            .divider {
-                height: 1px;
-                background-color: #e2e8f0;
-                margin: 30px 0;
+                font-family: 'Playfair Display', Georgia, serif;
+                font-size: 24px;
+                font-style: italic;
+                color: #718096;
+                margin-top: 15px;
             }
             .footer {
                 text-align: center;
                 font-size: 12px;
-                color: #94a3b8;
-                line-height: 1.5;
+                color: #718096;
+                line-height: 1.2;
+                padding: 12px 20px 20px;
+            }
+            .footer p {
+                margin: 4px 0;
             }
             .footer a {
-                color: #64748b;
+                color: #C2002F;
                 text-decoration: underline;
             }
         </style>
@@ -195,25 +278,33 @@ function buildEmailTemplate(quoteText, author, quoteImage) {
     <body>
         <center class="wrapper">
             <table class="main-table" role="presentation">
+                <!-- Header -->
                 <tr>
-                    <td class="content-container">
-                        <div style="text-align: center; margin-bottom: 30px;">
-                            <img src="https://static.wixstatic.com/media/c5af70_442591f3e5a64080931c0b02a8ee0177~mv2.jpeg" alt="CBS Office Logo" style="max-height: 80px; width: auto;" />
-                        </div>
-                        ${imageHtml}
-                        <div class="quote-text">
-                            ${quoteText}
-                        </div>
-                        <div class="quote-author">
-                            &mdash; ${author}
-                        </div>
-                        <div class="divider"></div>
-                        <div class="footer">
-                            <p>Sent with love from <strong>CBS Office</strong></p>
-                            <p>You are receiving this because you subscribed to our daily inspirational mailing list.</p>
-                            <p>&copy; ${new Date().getFullYear()} CBS Office. All rights reserved.</p>
-                            <span style="display:none !important; font-size:1px; color:#ffffff; line-height:1px; max-height:0px; max-width:0px; opacity:0; overflow:hidden;">${Date.now()}</span>
-                        </div>
+                    <td style="padding: 0;">
+                        <table class="header-table" role="presentation">
+                            <tr>
+                                <td class="date-box">
+                                    <div class="date-day">${day}</div>
+                                    <div class="date-month">${month}</div>
+                                </td>
+                                <td class="header-title">
+                                    <img src="https://static.wixstatic.com/media/c5af70_3a8c19002272469081362a8b839195be~mv2.png" alt="CBS Office Logo" style="max-height: 60px; width: auto; display: block;" />
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                
+                <!-- Image + Quote Card (combined for overlap) -->
+                ${imageAndCardHtml}
+
+                <!-- Footer -->
+                <tr>
+                    <td class="footer">
+                        <p>Sent with love from <strong>CBS Office</strong></p>
+                        <p>You are receiving this because you subscribed to our daily inspirational mailing list.</p>
+                        <p>&copy; ${new Date().getFullYear()} CBS Office. All rights reserved.</p>
+                        <span style="display:none !important; font-size:1px; color:#eae7e1; line-height:1px; max-height:0px; max-width:0px; opacity:0; overflow:hidden;">${Date.now()}</span>
                     </td>
                 </tr>
             </table>

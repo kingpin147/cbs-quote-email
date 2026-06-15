@@ -25,22 +25,24 @@ $w.onReady(async function () {
             if ($item("#quoteText")) {
                 $item("#quoteText").text = itemData.quoteText ? `"${itemData.quoteText}"` : "";
             }
-            if ($item("#authorText")) {
-                $item("#authorText").text = itemData.author ? `- ${itemData.author}` : "";
-            }
-            if ($item("#quoteImage")) {
-                if (itemData.quoteImage) {
-                    $item("#quoteImage").src = itemData.quoteImage;
-                    $item("#quoteImage").expand();
-                } else {
-                    $item("#quoteImage").collapse();
-                }
-            }
             if ($item("#quoteDateText") && itemData.quoteDate) {
                 $item("#quoteDateText").text = new Date(itemData.quoteDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
             }
         });
-        $w("#quoteRepeater").data = visibleItems;
+        let currentItems = [...visibleItems];
+
+        $w("#sortingDropdown").onChange((event) => {
+            const sortValue = event.target.value;
+            // Handle both "Oldest" label and underlying value regardless of casing
+            if (sortValue.toLowerCase().includes('old')) {
+                currentItems.sort((a, b) => new Date(a.quoteDate).getTime() - new Date(b.quoteDate).getTime());
+            } else {
+                currentItems.sort((a, b) => new Date(b.quoteDate).getTime() - new Date(a.quoteDate).getTime());
+            }
+            $w("#quoteRepeater").data = currentItems;
+        });
+
+        $w("#quoteRepeater").data = currentItems;
         $w("#quoteRepeater").show();
     } catch (err) {
         console.error(err);
