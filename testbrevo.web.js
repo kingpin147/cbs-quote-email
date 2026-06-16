@@ -33,10 +33,24 @@ export const testSendEmail = webMethod(Permissions.Anyone, async () => {
         const sendPromises = testEmails.map(email => sendSingleEmail(brevoApiKey, email, subject, htmlContent));
         const result = await Promise.all(sendPromises);
         
+        // Log successful execution to JobLogs collection
+        await wixData.insert('JobLogs', {
+          jobName: 'testSendEmail',
+          status: 'success',
+          timestamp: new Date(),
+          details: JSON.stringify({ result })
+        });
         console.log("Test execution result:", result);
         return result;
     } catch (error) {
         console.error("Test function failed:", error.message);
+        // Log error execution to JobLogs collection
+        await wixData.insert('JobLogs', {
+          jobName: 'testSendEmail',
+          status: 'error',
+          timestamp: new Date(),
+          errorMessage: error.message
+        });
         return { success: false, error: error.message };
     }
 });
