@@ -40,7 +40,7 @@ export const sendDailyQuoteJob = webMethod(Permissions.Anyone, async () => {
         }
 
         const dateString = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-        const subject = `Daily Quote - ${dateString}`;
+        const subject = `Quote of the Day | ${dateString}`;
 
         const htmlContent = buildEmailTemplate(quoteText, author, quoteImage, title, quoteDate);
         const batchSize = 10;
@@ -271,7 +271,29 @@ function buildEmailTemplate(quoteText, author, quoteImage, title, quoteDate) {
             }
             .footer a {
                 color: #C2002F;
-                text-decoration: underline;
+                text-decoration: none;
+                font-weight: 600;
+            }
+            .social-links {
+                margin: 15px 0;
+            }
+            .social-links a {
+                display: inline-block;
+                margin: 0 5px;
+                color: #C2002F;
+                text-decoration: none;
+                font-weight: 500;
+            }
+            .unsubscribe-btn {
+                display: inline-block;
+                margin-top: 15px;
+                padding: 10px 20px;
+                background-color: transparent;
+                color: #C2002F;
+                text-decoration: none;
+                font-weight: 600;
+                border: 1px solid #C2002F;
+                border-radius: 4px;
             }
         </style>
     </head>
@@ -301,9 +323,24 @@ function buildEmailTemplate(quoteText, author, quoteImage, title, quoteDate) {
                 <!-- Footer -->
                 <tr>
                     <td class="footer">
-                        <p>Sent with love from <strong>CBS Office</strong></p>
                         <p>You are receiving this because you subscribed to our daily inspirational mailing list.</p>
-                        <p>&copy; ${new Date().getFullYear()} CBS Office. All rights reserved.</p>
+                        <div class="social-links">
+                            <p style="margin-bottom: 8px;">Follow Dr. Chandra Bhanu Satpathy on Social Media:</p>
+                            <a href="https://www.facebook.com/chandrabhanusatpathyofficial" target="_blank">Facebook</a> &bull;
+                            <a href="https://x.com/TheOfficeofCBS" target="_blank">X</a> &bull;
+                            <a href="https://www.instagram.com/chandrabhanusatpathyofficial/" target="_blank">Instagram</a> &bull;
+                            <a href="https://www.youtube.com/@chandrabhanusatpathy" target="_blank">YouTube</a> &bull;
+                            <a href="https://open.spotify.com/artist/4b6TSj8Zw0rDF9idAX9OF7?si=P4lic_zURm2vLBhHf2Vp0g&nd=1&dlsi=550db7cc25fa4855" target="_blank">Spotify</a>
+                        </div>
+                        <p style="margin-top: 15px;"><strong>CBS Office</strong></p>
+                        <p>C-209, Sushant Lok, Phase-1, Gurugram,</p>
+                        <p>122018, Haryana, India</p>
+                        <div style="margin: 20px 0;">
+                            <a href="{{ unsubscribe }}" class="unsubscribe-btn">Unsubscribe</a>
+                            <span style="margin: 0 10px;">|</span>
+                            <a href="https://www.cbsatpathy.com" target="_blank" style="text-decoration: underline;">www.cbsatpathy.com</a>
+                        </div>
+                        <p>&reg; ${new Date().getFullYear()} CBS Office. All rights reserved.</p>
                         <span style="display:none !important; font-size:1px; color:#eae7e1; line-height:1px; max-height:0px; max-width:0px; opacity:0; overflow:hidden;">${Date.now()}</span>
                     </td>
                 </tr>
