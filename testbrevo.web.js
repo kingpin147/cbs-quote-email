@@ -1,9 +1,8 @@
 import wixData from 'wix-data';
 import { getSecret } from 'wix-secrets-backend';
 import { fetch } from 'wix-fetch';
-import { Permissions, webMethod } from 'wix-web-module';
 
-export const testSendEmail = webMethod(Permissions.Anyone, async () => {
+export async function testSendEmail() {
     try {
         const queryResult = await wixData.query("DailyQuote")
             .limit(1)
@@ -53,7 +52,7 @@ export const testSendEmail = webMethod(Permissions.Anyone, async () => {
         });
         return { success: false, error: error.message };
     }
-});
+}
 
 async function sendSingleEmail(apiKey, recipientEmail, subject, htmlContent) {
     const url = "https://api.brevo.com/v3/smtp/email";
