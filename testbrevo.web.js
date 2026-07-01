@@ -4,20 +4,29 @@ import { fetch } from 'wix-fetch';
 
 export async function testSendEmail() {
     try {
+        const today = new Date();
+        const startOfDay = new Date(today);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(today);
+        endOfDay.setHours(23, 59, 59, 999);
+
         const queryResult = await wixData.query("DailyQuote")
-            .limit(1)
+            .ge("quoteDate", startOfDay)
+            .le("quoteDate", endOfDay)
             .find();
 
-        let quoteText = "This is a test daily quote from the CMS.";
-        let author = "Test Author";
-        let quoteImage = "https://picsum.photos/200/300";
-
-        if (queryResult.items.length > 0) {
-            const quoteItem = queryResult.items[0];
-            quoteText = quoteItem.quoteText || quoteText;
-            author = quoteItem.author || author;
-            quoteImage = quoteItem.quoteImage || quoteImage;
+        if (queryResult.items.length === 0) {
+            console.log("No quote matching today's date found in the CMS. Skipping email dispatch.");
+            await wixData.insert('JobLogs', {
+                title: `testSendEmail | skipped | ${new Date().toISOString()} | No CMS entry found for today's date`
+            });
+            return;
         }
+
+        const quoteItem = queryResult.items[0];
+        const quoteText = quoteItem.quoteText;
+        const author = quoteItem.author || "Unknown";
+        const quoteImage = quoteItem.quoteImage;
 
         const brevoApiKey = await getSecret("BREVO_API_KEY");
         if (!brevoApiKey) {
@@ -34,10 +43,7 @@ export async function testSendEmail() {
         
         // Log successful execution to JobLogs collection
         await wixData.insert('JobLogs', {
-          jobName: 'testSendEmail',
-          status: 'success',
-          timestamp: new Date(),
-          details: JSON.stringify({ result })
+          title: `testSendEmail | success | ${new Date().toISOString()} | ${JSON.stringify({ result })}`
         });
         console.log("Test execution result:", result);
         return result;
@@ -45,10 +51,7 @@ export async function testSendEmail() {
         console.error("Test function failed:", error.message);
         // Log error execution to JobLogs collection
         await wixData.insert('JobLogs', {
-          jobName: 'testSendEmail',
-          status: 'error',
-          timestamp: new Date(),
-          errorMessage: error.message
+          title: `testSendEmail | error | ${new Date().toISOString()} | ${error.message}`
         });
         return { success: false, error: error.message };
     }
