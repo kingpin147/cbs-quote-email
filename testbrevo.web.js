@@ -1,18 +1,29 @@
 import wixData from 'wix-data';
 import { getSecret } from 'wix-secrets-backend';
 import { fetch } from 'wix-fetch';
+import { Permissions, webMethod } from 'wix-web-module';
 
-export async function testSendEmail() {
+export const testSendEmail = webMethod(Permissions.Anyone, async () => {
     try {
-        const today = new Date();
-        const startOfDay = new Date(today);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(today);
-        endOfDay.setHours(23, 59, 59, 999);
+        // Get current date in IST (UTC+5:30) as the target timezone
+        const tzOffset = 5.5 * 60 * 60 * 1000;
+        const todayIST = new Date(Date.now() + tzOffset);
+        
+        const year = todayIST.getUTCFullYear();
+        const month = String(todayIST.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(todayIST.getUTCDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+
+        const startOfDay = new Date(Date.UTC(todayIST.getUTCFullYear(), todayIST.getUTCMonth(), todayIST.getUTCDate(), 0, 0, 0, 0) - tzOffset);
+        const endOfDay = new Date(Date.UTC(todayIST.getUTCFullYear(), todayIST.getUTCMonth(), todayIST.getUTCDate(), 23, 59, 59, 999) - tzOffset);
 
         const queryResult = await wixData.query("DailyQuote")
-            .ge("quoteDate", startOfDay)
-            .le("quoteDate", endOfDay)
+            .eq("quoteDate", todayStr)
+            .or(
+                wixData.query("DailyQuote")
+                    .ge("quoteDate", startOfDay)
+                    .le("quoteDate", endOfDay)
+            )
             .find();
 
         if (queryResult.items.length === 0) {
@@ -45,7 +56,6 @@ export async function testSendEmail() {
         await wixData.insert('JobLogs', {
           title: `testSendEmail | success | ${new Date().toISOString()} | ${JSON.stringify({ result })}`
         });
-        console.log("Test execution result:", result);
         return result;
     } catch (error) {
         console.error("Test function failed:", error.message);
@@ -55,7 +65,7 @@ export async function testSendEmail() {
         });
         return { success: false, error: error.message };
     }
-}
+});
 
 async function sendSingleEmail(apiKey, recipientEmail, subject, htmlContent) {
     const url = "https://api.brevo.com/v3/smtp/email";
@@ -96,6 +106,9 @@ function buildEmailTemplate(quoteText, author, quoteImage) {
     const day = targetDate.getDate();
     const month = targetDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
 
+    const encodedQuote = encodeURIComponent(`“${quoteText}” — ${author}`);
+    const encodedUrl = encodeURIComponent("https://www.cbsatpathy.com");
+
     let imageAndCardHtml;
     let imageUrl = '';
     if (quoteImage) {
@@ -115,7 +128,7 @@ function buildEmailTemplate(quoteText, author, quoteImage) {
         imageAndCardHtml = `
         <tr>
             <td style="padding: 0; background-color: #eae7e1;">
-                <img src="${imageUrl}" alt="Inspirational Image" style="width: 100%; max-width: 100%; height: auto; display: block; border: 0;" />
+                <img src="${imageUrl}" alt="Inspirational Image" oncontextmenu="return false;" ondragstart="return false;" style="width: 100%; max-width: 100%; height: auto; display: block; border: 0; pointer-events: none; -webkit-user-drag: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;" />
                 <div style="margin-top: -45px; position: relative; padding-bottom: 20px;">
                     <table class="quote-card" align="center" role="presentation" width="100%" style="border-collapse: collapse;">
                         <tr>
@@ -123,6 +136,15 @@ function buildEmailTemplate(quoteText, author, quoteImage) {
                                 <div class="quote-mark">“</div>
                                 <div class="quote-text">${quoteText}</div>
                                 <div class="quote-author">${author}</div>
+                                
+                                <!-- Social Sharing -->
+                                <div class="share-section">
+                                    <span class="share-title">Share this Quote</span>
+                                    <a href="https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}" target="_blank" class="share-btn">Facebook</a>
+                                    <a href="https://twitter.com/intent/tweet?text=${encodedQuote}&url=${encodedUrl}" target="_blank" class="share-btn">X</a>
+                                    <a href="https://api.whatsapp.com/send?text=${encodedQuote}%20${encodedUrl}" target="_blank" class="share-btn">WhatsApp</a>
+                                    <a href="https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}" target="_blank" class="share-btn">LinkedIn</a>
+                                </div>
                             </td>
                         </tr>
                     </table>
@@ -140,6 +162,15 @@ function buildEmailTemplate(quoteText, author, quoteImage) {
                             <div class="quote-mark">“</div>
                             <div class="quote-text">${quoteText}</div>
                             <div class="quote-author">${author}</div>
+
+                            <!-- Social Sharing -->
+                            <div class="share-section">
+                                <span class="share-title">Share this Quote</span>
+                                <a href="https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}" target="_blank" class="share-btn">Facebook</a>
+                                <a href="https://twitter.com/intent/tweet?text=${encodedQuote}&url=${encodedUrl}" target="_blank" class="share-btn">X</a>
+                                <a href="https://api.whatsapp.com/send?text=${encodedQuote}%20${encodedUrl}" target="_blank" class="share-btn">WhatsApp</a>
+                                <a href="https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}" target="_blank" class="share-btn">LinkedIn</a>
+                            </div>
                         </td>
                     </tr>
                 </table>
@@ -221,16 +252,18 @@ function buildEmailTemplate(quoteText, author, quoteImage) {
             }
             .quote-card {
                 background-color: #ffffff;
-                box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
+                box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.06), 0 10px 30px rgba(0, 0, 0, 0.08);
                 text-align: center;
                 position: relative;
+                border-radius: 8px;
+                overflow: hidden;
             }
             .quote-mark {
                 font-family: 'Playfair Display', Georgia, serif;
                 font-size: 64px;
                 color: #cbd5e1;
                 line-height: 1;
-                margin-bottom: 10px;
+                margin-bottom: 5px;
                 height: 40px;
             }
             .quote-text {
@@ -248,13 +281,44 @@ function buildEmailTemplate(quoteText, author, quoteImage) {
                 font-style: italic;
                 color: #718096;
                 margin-top: 15px;
+                margin-bottom: 10px;
+            }
+            .share-section {
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px solid #edf2f7;
+                text-align: center;
+            }
+            .share-title {
+                font-size: 11px;
+                color: #a0aec0;
+                text-transform: uppercase;
+                letter-spacing: 1.5px;
+                display: block;
+                margin-bottom: 12px;
+                font-weight: 700;
+            }
+            .share-btn {
+                display: inline-block;
+                margin: 4px 6px;
+                padding: 6px 12px;
+                background-color: #ffffff;
+                color: #C2002F;
+                text-decoration: none;
+                border: 1px solid #C2002F;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: 700;
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                letter-spacing: 0.5px;
+                transition: all 0.2s ease;
             }
             .footer {
                 text-align: center;
                 font-size: 12px;
                 color: #718096;
                 line-height: 1.2;
-                padding: 12px 20px 20px;
+                padding: 24px 20px 20px;
             }
             .footer p {
                 margin: 4px 0;
@@ -264,20 +328,25 @@ function buildEmailTemplate(quoteText, author, quoteImage) {
                 text-decoration: none;
                 font-weight: 600;
             }
-            .social-links {
-                margin: 15px 0;
+            .social-icons-container {
+                margin: 20px 0;
             }
-            .social-links a {
+            .social-icon-link {
                 display: inline-block;
-                margin: 0 5px;
-                color: #C2002F;
+                margin: 0 8px;
                 text-decoration: none;
-                font-weight: 500;
+                vertical-align: middle;
+            }
+            .social-icon-img {
+                border: 0;
+                display: block;
+                width: 28px;
+                height: 28px;
             }
             .unsubscribe-btn {
                 display: inline-block;
                 margin-top: 15px;
-                padding: 10px 20px;
+                padding: 8px 18px;
                 background-color: transparent;
                 color: #C2002F;
                 text-decoration: none;
@@ -309,22 +378,32 @@ function buildEmailTemplate(quoteText, author, quoteImage) {
                 
                 <!-- Image + Quote Card (combined for overlap) -->
                 ${imageAndCardHtml}
-
+ 
                 <!-- Footer -->
                 <tr>
                     <td class="footer">
                         <p>You are receiving this because you subscribed to our daily inspirational mailing list.</p>
-                        <div class="social-links">
-                            <p style="margin-bottom: 8px;">Follow Dr. Chandra Bhanu Satpathy on Social Media:</p>
-                            <a href="https://www.facebook.com/chandrabhanusatpathyofficial" target="_blank">Facebook</a> &bull;
-                            <a href="https://x.com/TheOfficeofCBS" target="_blank">X</a> &bull;
-                            <a href="https://www.instagram.com/chandrabhanusatpathyofficial/" target="_blank">Instagram</a> &bull;
-                            <a href="https://www.youtube.com/@chandrabhanusatpathy" target="_blank">YouTube</a> &bull;
-                            <a href="https://open.spotify.com/artist/4b6TSj8Zw0rDF9idAX9OF7?si=P4lic_zURm2vLBhHf2Vp0g&nd=1&dlsi=550db7cc25fa4855" target="_blank">Spotify</a>
+                        
+                        <div class="social-icons-container">
+                            <p style="margin-bottom: 12px; color: #718096; font-size: 13px; font-weight: 600; letter-spacing: 0.5px;">Follow Dr. Chandra Bhanu Satpathy:</p>
+                            <a href="https://www.facebook.com/chandrabhanusatpathyofficial" target="_blank" class="social-icon-link">
+                                <img src="https://img.icons8.com/ios-filled/28/C2002F/facebook-new.png" alt="Facebook" class="social-icon-img" />
+                            </a>
+                            <a href="https://x.com/TheOfficeofCBS" target="_blank" class="social-icon-link">
+                                <img src="https://img.icons8.com/ios-filled/28/C2002F/twitterx.png" alt="X" class="social-icon-img" />
+                            </a>
+                            <a href="https://www.instagram.com/chandrabhanusatpathyofficial/" target="_blank" class="social-icon-link">
+                                <img src="https://img.icons8.com/ios-filled/28/C2002F/instagram-new.png" alt="Instagram" class="social-icon-img" />
+                            </a>
+                            <a href="https://www.youtube.com/@chandrabhanusatpathy" target="_blank" class="social-icon-link">
+                                <img src="https://img.icons8.com/ios-filled/28/C2002F/youtube-play.png" alt="YouTube" class="social-icon-img" />
+                            </a>
+                            <a href="https://open.spotify.com/artist/4b6TSj8Zw0rDF9idAX9OF7?si=P4lic_zURm2vLBhHf2Vp0g&nd=1&dlsi=550db7cc25fa4855" target="_blank" class="social-icon-link">
+                                <img src="https://img.icons8.com/ios-filled/28/C2002F/spotify.png" alt="Spotify" class="social-icon-img" />
+                            </a>
                         </div>
+
                         <p style="margin-top: 15px;"><strong>CBS Office</strong></p>
-                        <p>C-209, Sushant Lok, Phase-1, Gurugram,</p>
-                        <p>122018, Haryana, India</p>
                         <div style="margin: 20px 0;">
                             <a href="{{ unsubscribe }}" class="unsubscribe-btn">Unsubscribe</a>
                             <span style="margin: 0 10px;">|</span>
