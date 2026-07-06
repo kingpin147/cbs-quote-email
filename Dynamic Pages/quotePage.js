@@ -1,4 +1,5 @@
 import wixData from 'wix-data';
+import wixLocation from 'wix-location';
 
 $w.onReady(async function () {
     $w("#quoteRepeater").hide();
@@ -28,6 +29,12 @@ $w.onReady(async function () {
             if ($item("#quoteDateText") && itemData.quoteDate) {
                 $item("#quoteDateText").text = new Date(itemData.quoteDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
             }
+            
+            $item("#quoteBox").onClick(() => {
+                if (itemData["link-daily-quote-quoteText"]) {
+                    wixLocation.to(itemData["link-daily-quote-quoteText"]);
+                }
+            });
         });
         let currentItems = [...visibleItems];
 
