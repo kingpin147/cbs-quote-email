@@ -150,10 +150,9 @@ function buildEmailTemplate(quoteText, author, quoteImage, title, quoteDate) {
                                 <!-- Social Sharing -->
                                 <div class="share-section">
                                     <span class="share-title">Share this Quote</span>
-                                    <a href="https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}" target="_blank" class="share-btn">Facebook</a>
+                                    <a href="https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedQuote}" target="_blank" class="share-btn">Facebook</a>
                                     <a href="https://twitter.com/intent/tweet?text=${encodedQuote}&url=${encodedUrl}" target="_blank" class="share-btn">X</a>
                                     <a href="https://api.whatsapp.com/send?text=${encodedQuote}%20${encodedUrl}" target="_blank" class="share-btn">WhatsApp</a>
-                                    <a href="https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}" target="_blank" class="share-btn">LinkedIn</a>
                                 </div>
                             </td>
                         </tr>
@@ -176,10 +175,9 @@ function buildEmailTemplate(quoteText, author, quoteImage, title, quoteDate) {
                             <!-- Social Sharing -->
                             <div class="share-section">
                                 <span class="share-title">Share this Quote</span>
-                                <a href="https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}" target="_blank" class="share-btn">Facebook</a>
+                                <a href="https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedQuote}" target="_blank" class="share-btn">Facebook</a>
                                 <a href="https://twitter.com/intent/tweet?text=${encodedQuote}&url=${encodedUrl}" target="_blank" class="share-btn">X</a>
                                 <a href="https://api.whatsapp.com/send?text=${encodedQuote}%20${encodedUrl}" target="_blank" class="share-btn">WhatsApp</a>
-                                <a href="https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}" target="_blank" class="share-btn">LinkedIn</a>
                             </div>
                         </td>
                     </tr>
@@ -395,7 +393,7 @@ function buildEmailTemplate(quoteText, author, quoteImage, title, quoteDate) {
                         <p>You are receiving this because you subscribed to our daily inspirational mailing list.</p>
                         
                         <div class="social-icons-container">
-                            <p style="margin-bottom: 12px; color: #718096; font-size: 13px; font-weight: 600; letter-spacing: 0.5px;">Follow Dr. Chandra Bhanu Satpathy:</p>
+                            <p style="margin-bottom: 12px; color: #718096; font-size: 13px; font-weight: 600; letter-spacing: 0.5px;">Follow us:-</p>
                             <a href="https://www.facebook.com/chandrabhanusatpathyofficial" target="_blank" class="social-icon-link">
                                 <img src="https://img.icons8.com/ios-filled/28/C2002F/facebook-new.png" alt="Facebook" class="social-icon-img" />
                             </a>
@@ -413,13 +411,12 @@ function buildEmailTemplate(quoteText, author, quoteImage, title, quoteDate) {
                             </a>
                         </div>
 
-                        <p style="margin-top: 15px;"><strong>CBS Office</strong></p>
                         <div style="margin: 20px 0;">
                             <a href="{{ unsubscribe }}" class="unsubscribe-btn">Unsubscribe</a>
                             <span style="margin: 0 10px;">|</span>
                             <a href="https://www.cbsatpathy.com" target="_blank" style="text-decoration: underline;">www.cbsatpathy.com</a>
                         </div>
-                        <p>&reg; ${new Date().getFullYear()} CBS Office. All rights reserved.</p>
+                        <p>&reg; ${new Date().getFullYear()} All rights reserved.</p>
                         <span style="display:none !important; font-size:1px; color:#eae7e1; line-height:1px; max-height:0px; max-width:0px; opacity:0; overflow:hidden;">${Date.now()}</span>
                     </td>
                 </tr>
