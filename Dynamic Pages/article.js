@@ -4,8 +4,8 @@ import wixData from 'wix-data';
 $w.onReady(function () {
     
     // Make sure your database collection name is "article"
-    wixData.query("article")
-        .limit(1000)
+    wixData.query("ArticlesByDrChandraBhanuSatpathy")
+        .limit(250)
         .find()
         .then((results) => {
             let items = results.items;
@@ -47,19 +47,35 @@ $w.onReady(function () {
         });
 
         $w("#repeater1").onItemReady(($item, itemData, index) => {
-            if (itemData.description) {
-                let lines = itemData.description.split('\n');
+            if (itemData.content) {
+                let contentText = itemData.content.trim();
+                let lines = contentText.split('\n');
+                let display = contentText;
+                let wasCut = false;
+
                 if (lines.length > 2) {
-                    let firstTwoLines = lines.slice(0, 2).join('\n');
-                    $item("#descriptionText").text = firstTwoLines + " ..."; 
+                    display = lines.slice(0, 2).join('\n').trim();
+                    wasCut = true;
+                }
+
+                const maxChars = 200;
+                if (display.length > maxChars) {
+                    let truncated = display.slice(0, maxChars);
+                    let lastSpace = truncated.lastIndexOf(' ');
+                    if (lastSpace > maxChars - 30) {
+                        truncated = truncated.slice(0, lastSpace);
+                    }
+                    $item("#descriptionText").text = truncated.trim() + " ...";
+                } else if (wasCut) {
+                    $item("#descriptionText").text = display + " ...";
                 } else {
-                    $item("#descriptionText").text = itemData.description;
+                    $item("#descriptionText").text = display;
                 }
             }
 
             $item("#container1").onClick((event) => {
-                // Update this to match your actual dynamic page link for articles
-                let targetUrl = itemData['link-article-title']; 
+                // Use the exact Field ID from Wix CMS: link-articles-edit-title
+                let targetUrl = itemData['link-articles-edit-title']; 
                 if (targetUrl) {
                     wixLocation.to(targetUrl);
                 } else {

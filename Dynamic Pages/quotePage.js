@@ -6,7 +6,7 @@ $w.onReady(async function () {
     try {
         const results = await wixData.query("DailyQuote")
             .descending("quoteDate")
-            .limit(100)
+            .limit(250)
             .find();
 
         console.log("Raw items fetched from CMS:", results.items);
@@ -22,6 +22,15 @@ $w.onReady(async function () {
             return isVisible;
         });
 
+        // Set up the language dropdown options
+        let allLanguages = visibleItems.map(item => item.language).filter(Boolean);
+        let uniqueLanguages = [...new Set(allLanguages)];
+        let options = uniqueLanguages.map(lang => {
+            return { "label": lang, "value": lang };
+        });
+        options.unshift({ "label": "All Languages", "value": "all" });
+        $w("#languageDropdown").options = options;
+
         $w("#quoteRepeater").onItemReady(($item, itemData) => {
             if ($item("#quoteText")) {
                 $item("#quoteText").text = itemData.quoteText ? `"${itemData.quoteText}"` : "";
@@ -36,20 +45,38 @@ $w.onReady(async function () {
                 }
             });
         });
+
         let currentItems = [...visibleItems];
 
-        $w("#sortingDropdown").onChange((event) => {
-            const sortValue = event.target.value;
-            // Handle both "Oldest" label and underlying value regardless of casing
-            if (sortValue.toLowerCase().includes('old')) {
-                currentItems.sort((a, b) => new Date(a.quoteDate).getTime() - new Date(b.quoteDate).getTime());
-            } else {
-                currentItems.sort((a, b) => new Date(b.quoteDate).getTime() - new Date(a.quoteDate).getTime());
-            }
-            $w("#quoteRepeater").data = currentItems;
-        });
+        // Combined function to filter and sort repeater items
+        const updateRepeater = () => {
+            const selectedLanguage = $w("#languageDropdown").value;
+            const sortValue = $w("#sortingDropdown").value || "newest";
 
-        $w("#quoteRepeater").data = currentItems;
+            let itemsToDisplay = [...visibleItems];
+
+            // 1. Filter by language
+            if (selectedLanguage && selectedLanguage !== "all") {
+                itemsToDisplay = visibleItems.filter(item => item.language === selectedLanguage);
+            }
+
+            // 2. Sort by date
+            if (sortValue.toLowerCase().includes('old')) {
+                itemsToDisplay.sort((a, b) => new Date(a.quoteDate).getTime() - new Date(b.quoteDate).getTime());
+            } else {
+                itemsToDisplay.sort((a, b) => new Date(b.quoteDate).getTime() - new Date(a.quoteDate).getTime());
+            }
+
+            currentItems = itemsToDisplay;
+            $w("#quoteRepeater").data = currentItems;
+        };
+
+        // Wire up event listeners
+        $w("#languageDropdown").onChange(updateRepeater);
+        $w("#sortingDropdown").onChange(updateRepeater);
+
+        // Perform initial load
+        updateRepeater();
         $w("#quoteRepeater").show();
     } catch (err) {
         console.error(err);
