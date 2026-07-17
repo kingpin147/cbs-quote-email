@@ -18,9 +18,9 @@ $w.onReady(function () {
         // Handle clicking on an item to redirect to its dynamic news/details page
         $w("#repeater1").onItemReady(($item, itemData) => {
             $item("#container1").onClick(() => {
-                const linkKey = Object.keys(itemData).find(key => key.startsWith('link-'));
-                if (linkKey && itemData[linkKey]) {
-                    wixLocation.to(itemData[linkKey]);
+                const targetUrl = itemData['link-events-eventName'] || itemData['link-events-eventname'] || itemData[Object.keys(itemData).find(key => key.startsWith('link-'))];
+                if (targetUrl) {
+                    wixLocation.to(targetUrl);
                 } else {
                     console.error("Dynamic page link not found for this event.");
                 }
